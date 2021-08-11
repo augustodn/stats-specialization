@@ -35,7 +35,7 @@ specialization that covers EDA and regression if they are unfamiliar with
 
 Let's load the packages that we will be using:
 
-```{r load-packages, message=FALSE, warning = F}
+```{r load-packages, message=FALSE, warning=FALSE}
 library(MASS)
 library(tidyverse)
 library(statsr)
@@ -177,7 +177,7 @@ on top.
 ggplot(data = wage, aes(x = iq, y = wage)) +
   geom_point() +
   stat_smooth(method = "lm", se = FALSE)
-```  
+```
 
 Under the assumption that the errors $\epsilon_i$ are independent and normally 
 distributed with mean zero and an unknown variance $\sigma^2$, the posterior 
@@ -684,7 +684,7 @@ times higher than in rural regions.
 <div class="exercise">
 Find a 95% credible interval for the coefficient of `educ` and provide an interpretation.
 </div>
- 
+
 ```{r E6-CI-lwage}
 # Type your code for Exercise 6 here
 ```
