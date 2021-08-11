@@ -13,7 +13,7 @@ well justified.
 - 1 pt for correct reasoning for causality -- Answer should discuss whether 
 random assignment was used.
 
-    
+
 ## Part 2: Data manipulation (10 points)
 
 - Create new variable based on `title_type`: New variable should be called 
