@@ -104,3 +104,7 @@ methodology) and include ideas for possible future research.
 - Organization: 1 pts
 - Readability of the text: 2 pts
 - Readability of the code: 2 pts
+
+```{python}
+
+```
