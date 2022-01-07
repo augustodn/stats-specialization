@@ -1,0 +1,185 @@
+# Peer Assessment I - Statistics with R Capstone
+
+First, let us load the data and necessary packages:
+
+```{r load, message=FALSE, warning=FALSE}
+load("ames_train.Rdata")
+library(MASS)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(gridExtra)
+```
+
+#### Question 1
+Make a labeled histogram (with 30 bins) of the ages of the houses in the data set, and describe the distribution.
+
+
+```{r Q1}
+
+houses_age <- ames_train %>%
+  mutate(age = 2017 - Year.Built)
+
+p <- ggplot(houses_age, aes(x=age)) + geom_histogram(bins=30)
+
+p + labs(
+  title = "Ames Houses - Age of The House in Years",
+  x = "Age",
+  y = "count",
+)
+
+```
+
+
+The distribution is right skewed. The vast majority of houses in Ames, have at least 60 years. There's a high number of new houses, which have been built recently (less than 25 years). From the plots, it's clear that the amount of houses built has been continuously increasing along the years in Ames. There seems to be a local maximum around the '60s decade where building peaked and then decreased dramatically. However, since the '90s building pace has been steadily increasing. This observation indicates a multimodal behavior in the distribution.
+
+#### Question 2
+
+The mantra in real estate is "Location, Location, Location!" Make a graphical display that relates a home price to its neighborhood in Ames, Iowa. Which summary statistics are most appropriate to use for determining the most expensive, least expensive, and most heterogeneous (having the most variation in housing price) neighborhoods? Report which neighborhoods these are based on the summary statistics of your choice. Report the value of your chosen summary statistics for these neighborhoods.
+
+
+```{r Q2}
+# tapply(ames_train$price, ames_train$Neighborhood, summary)
+
+ames_train %>%
+  group_by(Neighborhood) %>%
+  summarise(mean = mean(price), median = median(price), SD = sd(price), IQR = IQR(price)) %>%
+  arrange(desc(median, IQR))
+
+fig <- ggplot(ames_train, aes(x=Neighborhood, y=price)) + geom_boxplot()
+fig + theme(axis.text.x = element_text(angle=90))
+```
+
+
+The distribution of prices along neighborhoods can be easily spot checked using a boxplot. These kind of plots can easily determine median, max., min and outlier prices as well as the price distribution for each category.
+
+From the plots and based on the summary statistics presented, we can determine the following neighborhoods as being:
+
+1. MeadowV the least expensive with a median price of $85750
+
+2. StoneBr the most expensive one with a median price of $340692
+
+3. StoneBr, is the most heterogeneus, based in the IQR (InterQuartile Range) which is equal to $151358
+
+#### Question 3
+
+Which variable has the largest number of missing values? Explain why it makes sense that there are so many missing values for this variable.
+
+```{r Q3}
+ames_train %>%
+  summarise(across(everything(), ~ sum(is.na(.)))) %>% 
+  pivot_longer(cols = everything(), names_to = "Variable", values_to = "NAs") %>% 
+  arrange(desc(NAs)) %>%
+  head(5)
+```
+
+
+The largest variable with missing information is the one related to the pool quality. There are 997 of 1000 houses from the dataset which don't have a pool built in the house. That's the reason why the amount of missing values is so large for this variable.
+
+#### Question 4
+
+We want to predict the natural log of the home prices. Candidate explanatory variables are lot size in square feet (Lot.Area), slope of property (Land.Slope), original construction date (Year.Built), remodel date (Year.Remod.Add), and the number of bedrooms above grade (Bedroom.AbvGr). Pick a model selection or model averaging method covered in the Specialization, and describe how this method works. Then, use this method to find the best multiple regression model for predicting the natural log of the home prices.
+
+The analysis is started by exploring the variables and their correlation between each other. In this way we can have an intuiton of the colinearity among them. The objective is to find variables which are not correlated between them, but at the same time have a linear relationship with the target variable, which in this case is the log(price).
+
+```{r Q4}
+pairs(log(price) ~ Lot.Area+Land.Slope+Year.Built+Year.Remod.Add+Bedroom.AbvGr,
+      data=ames_train)
+
+lm_full <- lm(log(price) ~ Lot.Area+Land.Slope+Year.Built+Year.Remod.Add+
+                Bedroom.AbvGr, data=ames_train)
+summary(lm_full)
+```
+Now let's perform backwards elimination method. This method **removes** one variable at a time until a `parsimonious` model is reached. This is, the model with the lowest adjusted R-squared value. The criteria for removal is to pick the variables which have the lowest predictive value based on `Pr(>|t|)`.
+
+```{r}
+final_model <- step(lm_full, direction = "backward", trace = FALSE)
+summary(final_model)
+```
+
+As noticed from the summary report, the final model after the backward elimination method maintains the complete set of variables as this is the parsimonious model for the candidate's list.
+
+#### Question 5
+
+Which home has the largest squared residual in the previous analysis (Question 4)? Looking at all the variables in the data set, can you explain why this home stands out from the rest (what factors contribute to the high squared residual and why are those factors relevant)?
+
+
+```{r Q5}
+ggplot(data = final_model, aes(x = .fitted, y = .resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  xlab("Fitted values") +
+  ylab("Residuals")
+```
+
+Let's now find out what is the largest residual. From the previous plot there's only one with a squared value > 2.
+
+```{r}
+outlier <- which(final_model$residuals < -2)
+print(outlier)
+# Let's get some standard values so we can compare
+some_residuals <- which(final_model$residuals > -0.02 & final_model$residuals < 0)
+some_residuals <- append(some_residuals, outlier)
+
+ames_multiple_reg <- ames_train %>% 
+  select(c('price', 'Lot.Area', 'Land.Slope', 'Year.Built', 
+    'Year.Remod.Add', 'Bedroom.AbvGr')) %>%
+  mutate(price = log(price))
+
+print(some_residuals)
+ames_subset <- ames_multiple_reg[some_residuals,]
+head(
+  ames_subset[order(ames_subset$Year.Built),],
+  10
+)
+```
+From the query, the observation 428 is determined as the one with the highest residual. The outlier's house price is **considerably** lower than the rest of the houses from the dataset where the residual is closer to 0.
+
+From the set of explanatory variables, the house building year appears to be the one which is impacting in the real price (vs. the modeled one). Even if the house has been remodeled later in time, particularly in 1970, this house forms part of the first wave of houses built in the city. Probably their basements and core structure are too old and that's what has been evaluated when the price was determined. Looking at the variables in the full dataset, many of the indicators related to building quality qualifies the house in poor terms.
+
+#### Question 6
+
+Use the same model selection method you chose in Question 4 to again find the best multiple regression model to predict the natural log of home prices, but this time **replacing Lot.Area with log(Lot.Area)**. Do you arrive at a model including the same set of predictors?
+
+
+```{r Q6}
+lm_log_lotArea <- lm(log(price) ~ log(Lot.Area)+Land.Slope+Year.Built+Year.Remod.Add+
+                Bedroom.AbvGr, data=ames_train)
+
+lm_log_lotArea <- step(lm_log_lotArea, direction = "backward", trace = FALSE)
+summary(lm_log_lotArea)
+
+```
+
+Using the same selection criteria, this model doesn't include one of the predictors: **Land.Slope**. However, comparing the $R^2$ values, the difference is **not significant**. Hence, we can use the **full set of predictors** to model the house prices.
+
+```{r}
+mdl_no_slope <- lm(log(price) ~ log(Lot.Area)+Year.Built+Year.Remod.Add+
+                Bedroom.AbvGr, data=ames_train)
+
+summary(mdl_no_slope)
+```
+
+
+#### Question 7
+
+Do you think it is better to log transform Lot.Area, in terms of assumptions for linear regression? Make graphs of the predicted values of log home price versus the true values of log home price for the regression models selected for Lot.Area and log(Lot.Area). Referencing these two plots, provide a written support that includes a quantitative justification for your answer in the first part of question 7.
+
+```{r Q7}
+# type your code for Question 7 here, and Knit
+plot(predict(final_model), log(ames_train$price),
+     main="Model without Lot Area Log Transformation", 
+     xlab="predicted",ylab="actual")
+ abline(a=0,b=1)
+ 
+ 
+plot(predict(lm_log_lotArea), log(ames_train$price),
+     main="Model with Lot Area Log Transformation",  
+     xlab="predicted",ylab="actual")
+ abline(a=0,b=1)
+
+```
+
+From the plots it's clear that using a log transformation on Lot.Area tends to reduce the difference between real and predicted values as they are closer to the regression line, indicating smaller residuals. In fact, residuals are more evenly distributed which indicates lower standard errors and makes the model more reliable.
+
+This is not the case **without** the Lot.Area log transformation where the residuals are `heteroskedastic`. This means that the variance of the error is not constant across the universe of house prices. This phenomena makes our model less reliable, despite the fact that the $R^2$ value is slightly lower.
