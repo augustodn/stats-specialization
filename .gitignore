@@ -3,3 +3,4 @@
 .DS_Store
 *.Rdata
 .ipynb_checkpoints/
+.Rhistory

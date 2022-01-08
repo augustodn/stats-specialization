@@ -14,6 +14,10 @@ First, let us load the data:
 
 ```{r load}
 load("ames_train.Rdata")
+library(MASS)
+library(dplyr)
+library(statsr)
+library(BAS)
 ```
 
 
@@ -25,8 +29,24 @@ load("ames_train.Rdata")
 <li> `Overall.Qual` </li>
 <li> `Land.Slope` </li>
 </ol>
+
+Answer: 4. Land.Slope
+
 ```{r Q1}
 # type your code for Question 1 here, and Knit
+
+lm1 <- lm(log(price) ~ log(area)+log(Lot.Area)+Bedroom.AbvGr+
+                 Overall.Qual+Land.Slope,
+                 data=ames_train)
+                 
+# AIC
+stepAIC(lm1, k=2, trace=0)
+
+# with BIC
+n = nrow(ames_train)
+k_BIC = log(n)
+
+stepAIC(lm1, k=k_BIC, trace=0)
 
 ```
 
@@ -45,9 +65,18 @@ Use principled statistical methods to select a single parsimonious model.
 <li> Since the number of bedrooms is a statistically insignificant predictor of housing price, it is unsurprising that the coefficient changes depending on which variables are included.
 </ol>
 
+Answer. 3. Larger houses on average have more bedrooms and sell for higher prices....
+
 ```{r Q2}
 # type your code for Question 2 here, and Knit
 
+lm1 <- lm(log(price) ~ 
+            Bedroom.AbvGr+
+            log(area),
+            #+log(Lot.Area)+Bedroom.AbvGr+
+            #Overall.Qual+Land.Slope,
+            data=ames_train)
+summary(lm1)
 ```
 
 \fb{Recall: the interpretation of a coefficient holds constant all other variables included in the model.
@@ -97,8 +126,16 @@ Examine the residuals of a linear model.
 <li> `MeadowV`
 </ol>
 
+Answer: GrnHill
 ```{r Q4}
 # type your code for Question 4 here, and Knit
+ames_residuals %>%
+  mutate(residuals_2=residuals**2) %>%
+  group_by(Neighborhood) %>%
+  summarise(R_2 = mean(residuals_2),
+            SD = sd(residuals), 
+            ) %>%
+  arrange(desc(R_2))
 
 ```
 
@@ -116,9 +153,14 @@ Examine the residuals of a linear model.
 <li> 924
 </ol>
 
+Answer: 64
+
 ```{r Q5}
 # type your code for Question 5 here, and Knit
 
+
+lm1 <- lm(log(price) ~ Overall.Qual+Bsmt.Qual+Garage.Qual, data=ames_train)
+summary(lm1)
 ```
 
 \fb{Run the model in R.  How many observations are used?  There are 1000 originally in the data.
@@ -133,10 +175,12 @@ Identify the assumptions of linear regression and assess when a model may need t
 <li> Recode all `NA` values as the category `TA` since we must assume these basements or garages are typical in the absence of all other information.
 <li> Recode all `NA` values as a separate category, since houses without basements or garages are fundamentally different than houses with both basements and garages.
 </ol>
-
+Answer: 3. Recode all `NA` values as a separate category. `TA` stands for `Typical\Average` which is not the case, since they are absent.
 ```{r Q6}
 # type your code for Question 6 here, and Knit
-
+ames_train %>%
+  select(c('Bsmt.Qual', 'Garage.Qual')) %>%
+  summary()
 ```
 
 \fb{We can use the information that a house does not have a basement or garage to create a separate category for `NA` values.  This will allow us to avoid discarding observations and use the model to predict prices for out-of-sample houses that lack garages or basements.
