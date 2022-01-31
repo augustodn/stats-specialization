@@ -98,6 +98,8 @@ Answer: 3. GrnHill
 ```{r Q3}
 # type your code for Question 3 here, and Knit
 lm1 <- lm(log(price) ~ log(area), data=ames_train)
+summary(lm1)
+
 ames_residuals <- ames_train %>% 
   mutate(residuals = resid(lm1))
 
@@ -197,8 +199,19 @@ Check the assumptions of a linear model.
 <li> 090: Duplexes
 </ol>
 
+Answer: 075: 1 story planned unit development
+
 ```{r Q7}
 # type your code for Question 7 here, and Knit
+lm2 = lm( log(price) ~ Overall.Cond + Overall.Qual, data=ames_train)
+
+ames_predict = ames_train
+ames_predict$price_prediction = predict(lm2)
+
+ames_predict %>% 
+  group_by(MS.SubClass) %>%
+  summarise(median = median(price_prediction)) %>%
+  arrange(., desc(median))
 
 ```
 
@@ -216,8 +229,12 @@ Predict the value of the response variable for a given value of the explanatory 
 <li> 832
 </ol>
 
+Answer: 268
+
 ```{r Q8}
 # type your code for Question 8 here, and Knit
+#Let's find the index of the max value
+which.max(hatvalues(lm2))
 
 ```
 
@@ -234,6 +251,8 @@ Identify outliers and high leverage points in a linear model.
 <li> Holding constant all other variables in the dataset, on average, an additional bedroom will increase housing price by $k$ dollars.
 <li> Holding constant all other variables in the model, on average, an additional bedroom will increase housing price by $k$ dollars.
 </ol>
+
+Answer: Holding constant all other variables in the **model**, on average, an additional bedroom will increase housing price by $k$ **percent**.
 
 ```{r Q9}
 # type your code for Question 9 here, and Knit
@@ -267,6 +286,8 @@ legend(x=,"right", legend=levels(ames_train$Sale.Condition),
 <li> `Abnorm` and `Partial`
 </ol>
 
+Answer: Abnorm and Partial. Both groups have influential points from the normal regression line.
+
 ```{r Q10}
 # type your code for Question 10 here, and Knit
 
@@ -291,8 +312,17 @@ Because houses with non-normal selling conditions exhibit atypical behavior and 
 <li> 91.8\%
 </ol>
 
+Answer: 83.4
+
 ```{r Q11}
 # type your code for Question 11 here, and Knit
+
+ames_train_subset = subset(ames_train, Sale.Condition == 'Normal')
+
+normal = count(ames_train_subset)
+total = count(ames_train)
+
+normal/total
 
 ```
 
@@ -310,8 +340,12 @@ Use R commands to effectively manipulate data.
 <li> False, restricting the model to only include observations with normal sale conditions decreases the $R^2$ from 0.603 to 0.575.
 </ol>
 
+Answer: True, restricting the model to only include observations with normal sale conditions increases the $R^2$ from 0.547 to 0.575.
+
 ```{r Q12}
 # type your code for Question 12 here, and Knit
+lm3 <- lm(log(price) ~ log(area), data=ames_train_subset)
+summary(lm3)
 
 ```
 

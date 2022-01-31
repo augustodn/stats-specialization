@@ -182,4 +182,4 @@ plot(predict(lm_log_lotArea), log(ames_train$price),
 
 From the plots it's clear that using a log transformation on Lot.Area tends to reduce the difference between real and predicted values as they are closer to the regression line, indicating smaller residuals. In fact, residuals are more evenly distributed which indicates lower standard errors and makes the model more reliable.
 
-This is not the case **without** the Lot.Area log transformation where the residuals are `heteroskedastic`. This means that the variance of the error is not constant across the universe of house prices. This phenomena makes our model less reliable, despite the fact that the $R^2$ value is slightly lower.
+This is not the case **without** the Lot.Area log transformation where the residuals are `heteroskedastic`. This means that the variance of the error is not constant across the universe of house prices. This phenomena makes our model less reliable, in fact the $R^2$ value is slightly lower.
