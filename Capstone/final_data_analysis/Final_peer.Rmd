@@ -27,6 +27,7 @@ library(dplyr)
 library(BAS)
 library(ggplot2)
 library(gridExtra)
+library(MASS)
 ```
 
 ## Part 1 - Exploratory Data Analysis (EDA)
@@ -40,6 +41,9 @@ After you have explored completely, submit the three graphs/plots that you found
 * * *
 
 NOTE: Write your written response to part 1 here. Delete this note before you submit your work.
+
+To begin with the Exploratory Data Analysis (EDA), the relationship between price and house location will be analysed. Particularly, the focus will be placed in the neighborhoods. Should the price change given a certain neighborhood?
+
 
 ```{r creategraphs}
 fig <- ggplot(ames_train, aes(x=Neighborhood, y=price)) + geom_boxplot()
@@ -61,13 +65,10 @@ Our target variable presents a right skew. This can cause some issues if we want
 pairs(log(price) ~ log(area)+Year.Built+Full.Bath+Overall.Qual+Garage.Cars,
       data=ames_train)
 ```
-**Note**: Log Lot.Area
 
-Several variables have been included. The selection was not limited to numerical but also categorical features. As it can be seen in the last plot, there is not much collinearity among them. For sure, it's almost impossible to remove collinearity between variables and as an example, we can observe some dependency between `Garage.Cars` and the house `area`. This is something expected since, larger houses tend to have more garage capacity, in this case, number of cars that can be stored inside.
+Finally several variables have been included in a correlation analysis. The selection was not limited to numerical but also categorical features. As it can be seen in the last graphic, there is not much collinearity among them. It's also true that it's almost impossible to remove collinearity between variables; as an example, we can observe some dependency between `Garage.Cars` and the house `area`. This is something expected since, larger houses tend to have more garage capacity, in this case, number of cars that can be stored inside.
 
-All area variables are compounding between each other at a certain level. The best descriptor seems to be the log(area) one, since it has a better fit to a linear regression curve. Nevertheless, this feature has some outliers as it can easily be seen. Later on the model selection, depending on the feature predictive strength those outliers can be taken out from the sample.
-
-* * *
+All area variables are compounding between each other at a certain level. The best descriptor seems to be the log(area) one, since it has a better fit to a linear regression curve. Nevertheless, this feature has some outliers as it can easily be seen. Later on the model selection, depending on the feature predictive strength those outliers can be taken out from the sample to increase the model accuracy.
 
 ## Part 2 - Development and assessment of an initial model, following a semi-guided process of analysis
 
@@ -81,20 +82,47 @@ Based on your EDA, select *at most* 10 predictor variables from “ames_train”
 NOTE: Write your written response to section 2.1 here. Delete this note before you submit your work.
 
 ```{r fit_model}
+
+baseline_model <- lm(log(price) ~ log(area)+Year.Built+Full.Bath+Overall.Qual+
+                     Garage.Cars+Neighborhood,
+                     data=ames_train)
+summary(baseline_model)
+
 ```
+The variables chosen for the baseline model are pretty straightforward. Intuitively we can price a house based on how _big_ is it. For so, predictors such as the house `area`, the amount of bathrooms: `Full.Bath` and the amount of cars (`Garage.Cars`) which can be saved inside a house can play as good indicators for this purpose. The year when the house was built (`Year.Built`), together with the property's overall quality `Overall.Qual` help us to determine how the house is aging. Finally, the house location is also of prime importance. The house might have a luxury style but if it's located in a bad neighborhood, its relative price compared with other neighborhoods might fall.
+
+Looking at the baseline model summary results, a relatively high R-squared value can be observed. Even the adjusted one which considers the fact that several variables are included. Notice that this correction has in mind the propensity to have more collinearity as the amount of predictors are increased. Given the _coefficient of determination_ ($R^2$) the model explains almost 85% of the target variability. Almost all the variables included have high significance looking at their Pr(>|t|) except for Full.Bath which in general terms have a good capacity to explain price variability. Maybe the predictiveness power of this last variable can be increased should some outliers are removed such as those houses without full baths which might represent very particular selling conditions.
+
 
 * * *
 
 ### Section 2.2 Model Selection
 
-Now either using `BAS` another stepwise selection procedure choose the "best" model you can, using your initial model as your starting point. Try at least two different model selection methods and compare their results. Do they both arrive at the same model or do they disagree? What do you think this means?
+Now either using `BAS` or another stepwise selection procedure choose the "best" model you can, using your initial model as your starting point. Try at least two different model selection methods and compare their results. Do they both arrive at the same model or do they disagree? What do you think this means?
 
 * * *
 
 NOTE: Write your written response to section 2.2 here. Delete this note before you submit your work.
 
 ```{r model_select}
+AIC_model <- stepAIC(baseline_model, k = 2)
 ```
+```{r}
+n = nrow(ames_train)
+k_BIC = log(n)
+BIC_model <- stepAIC(baseline_model, k = k_BIC)
+```
+```{r}
+bma_model <- bas.lm(log(price) ~ log(area)+Year.Built+Full.Bath+Overall.Qual+
+                     Garage.Cars+Neighborhood,
+                     data=ames_train,
+                     prior = "BIC", 
+                     modelprior = uniform())
+summary(bma_model)
+
+```
+
+Using different approaches, the same result is achieved. All of the models selection criteria have included the complete set of variables. As it can be seen by using the BIC backward elimination not all the neighborhoods have the same level of predictability. This have been noticed previously while fitting the model. In fact, some of them are excluded with the BIC elimination.
 
 * * *
 
