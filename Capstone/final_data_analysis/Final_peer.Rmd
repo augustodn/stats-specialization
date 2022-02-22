@@ -1,11 +1,6 @@
----
-title: "Peer Assessment II"
-output:
-  html_document: 
-    pandoc_args: [
-      "--number-sections",
-    ]
----
+# Final Data Analysis Peer Review Assignment
+A. de Nevrezé
+2022-02-14
 
 # Background
 
@@ -28,6 +23,8 @@ library(BAS)
 library(ggplot2)
 library(gridExtra)
 library(MASS)
+library(forcats)
+library(caret)
 ```
 
 ## Part 1 - Exploratory Data Analysis (EDA)
@@ -40,7 +37,103 @@ After you have explored completely, submit the three graphs/plots that you found
 
 * * *
 
-NOTE: Write your written response to part 1 here. Delete this note before you submit your work.
+
+### 1.1 Data Cleaning
+
+Before beginning with the Exploratory Data Analysis we'll start by cleaning our training dataset. This is gonna be an initial cleaning so data is clearer and the variables are correctly represented. However, during the model training is probable that more cleaning will be needed.
+
+#### 1.1.1 Variable type conversions
+
+Some variables are **misspecified**: some of them are categorical and need to be converted to integer and vice-versa.
+
+```{r warning=FALSE}
+ames_train$area <- as.numeric(ames_train$area)
+ames_train$price <- as.numeric(ames_train$price)
+ames_train$Lot.Frontage <- as.numeric(ames_train$Lot.Frontage)
+ames_train$Lot.Area <- as.numeric(ames_train$Lot.Area)
+ames_train$Mas.Vnr.Area <- as.numeric(ames_train$Mas.Vnr.Area)
+ames_train$BsmtFin.SF.1 <- as.numeric(ames_train$BsmtFin.SF.1)
+ames_train$BsmtFin.SF.2 <- as.numeric(ames_train$BsmtFin.SF.2)
+ames_train$Total.Bsmt.SF <- as.numeric(ames_train$Total.Bsmt.SF)
+ames_train$MS.SubClass <- as.factor(ames_train$MS.SubClass)
+ames_train$Overall.Qual <- as.factor(ames_train$Overall.Qual)
+ames_train$Overall.Cond <- as.factor(ames_train$Overall.Cond)
+ames_train$X1st.Flr.SF <- as.numeric(ames_train$X1st.Flr.SF)
+ames_train$X2nd.Flr.SF <- as.numeric(ames_train$X2nd.Flr.SF)
+ames_train$Low.Qual.Fin.SF <- as.numeric(ames_train$Low.Qual.Fin.SF)
+ames_train$Garage.Area <- as.numeric(ames_train$Garage.Area)
+ames_train$Wood.Deck.SF <- as.numeric(ames_train$Wood.Deck.SF)
+ames_train$Open.Porch.SF <- as.numeric(ames_train$Open.Porch.SF)
+ames_train$Enclosed.Porch <- as.numeric(ames_train$Enclosed.Porch)
+ames_train$X3Ssn.Porch <- as.numeric(ames_train$X3Ssn.Porch)
+ames_train$Screen.Porch <- as.numeric(ames_train$Screen.Porch)
+ames_train$Pool.Area <- as.numeric(ames_train$Pool.Area)
+ames_train$Misc.Val <- as.numeric(ames_train$Misc.Val)
+ames_train$Garage.Yr.Blt <- as.integer(ames_train$Garage.Yr.Blt)
+```
+
+#### 1.1.2 Undeclared Categories
+*Undeclared categories*: There are many features which have undeclared categories which has been left as `N.A` values but instead they have predictive information
+
+```{r warning=FALSE}
+ames_train$Alley <- fct_explicit_na(ames_train$Alley, na_level = "None")
+ames_train$Bsmt.Qual <- fct_explicit_na(ames_train$Bsmt.Qual, na_level = "None")
+ames_train$Bsmt.Cond <- fct_explicit_na(ames_train$Bsmt.Cond, na_level = "None")
+ames_train$Bsmt.Exposure <- fct_explicit_na(ames_train$Bsmt.Exposure, na_level = "None")
+ames_train$BsmtFin.Type.1 <- fct_explicit_na(ames_train$BsmtFin.Type.1, na_level = "None")
+ames_train$BsmtFin.Type.2 <- fct_explicit_na(ames_train$BsmtFin.Type.2, na_level = "None")
+ames_train$Fireplace.Qu <- fct_explicit_na(ames_train$Fireplace.Qu, na_level = "None")
+ames_train$Garage.Type <- fct_explicit_na(ames_train$Garage.Type, na_level = "None")
+ames_train$Garage.Finish <- fct_explicit_na(ames_train$Garage.Finish, na_level = "None")
+ames_train$Garage.Type <- fct_explicit_na(ames_train$Garage.Type, na_level = "None")
+ames_train$Garage.Qual <- fct_explicit_na(ames_train$Garage.Cond, na_level = "None")
+ames_train$Garage.Cond <- fct_explicit_na(ames_train$Garage.Qual, na_level = "None")
+ames_train$Pool.QC <- fct_explicit_na(ames_train$Pool.QC, na_level = "None")
+ames_train$Fence <- fct_explicit_na(ames_train$Fence, na_level = "None")
+ames_train$Misc.Feature <- fct_explicit_na(ames_train$Misc.Feature, na_level = "None")
+```
+
+
+#### 1.1.3 Unsorted Variables
+*Unsorted categories*: Some variables are unsorted but should have certain order, so as can be later be decoded properly to integer values when using them in the model.
+
+```{r warning=FALSE}
+ames_train$Street <- fct_relevel(ames_train$Street, c("Pave", "Grvl"))
+ames_train$Alley <- fct_relevel(ames_train$Alley, c("Pave", "Grvl", "None"))
+ames_train$Lot.Shape <- fct_relevel(ames_train$Lot.Shape, c("Reg", "IR1", "IR2", "IR3"))
+ames_train$Exter.Qual <- fct_relevel(ames_train$Exter.Qual, c("Ex", "Gd", "TA", "Fa", "Po"))
+ames_train$Exter.Cond <- fct_relevel(ames_train$Exter.Cond, c("Ex", "Gd", "TA", "Fa", "Po"))
+ames_train$Bsmt.Qual <- fct_relevel(ames_train$Bsmt.Qual, 
+        c("Ex", "Gd", "TA", "Fa", "Po", "None"))
+ames_train$Bsmt.Cond <- fct_relevel(ames_train$Bsmt.Cond, 
+        c("Ex", "Gd", "TA", "Fa", "Po", "None"))
+ames_train$Functional <- fct_relevel(ames_train$Functional, c("Typ", "Min1", "Min2", "Mod",
+        "Maj1", "Maj2", "Sev", "Sal"))
+ames_train$Fireplace.Qu <- fct_relevel(ames_train$Fireplace.Qu, c("Ex", "Gd", "TA", "Fa", 
+        "Po", "None"))
+ames_train$Garage.Finish <- fct_relevel(ames_train$Garage.Finish, c("Fin", "RFn", "Unf", 
+        "None"))
+ames_train$Garage.Qual <- fct_relevel(ames_train$Garage.Qual, c("Ex", "Gd", "TA", "Fa", 
+        "Po", "None"))
+ames_train$Garage.Cond <- fct_relevel(ames_train$Garage.Cond, c("Ex", "Gd", "TA", "Fa", 
+        "Po", "None"))
+ames_train$Paved.Drive <- fct_relevel(ames_train$Paved.Drive, c("Y", "P", "N"))
+ames_train$Pool.QC <- fct_relevel(ames_train$Pool.QC, c("Ex", "Gd", "TA", "Fa", "None"))
+ames_train$Fence <- fct_relevel(ames_train$Fence, c("GdPrv", "MnPrv", "GdWo", "MnWo", 
+        "None"))
+ames_train$Bsmt.Exposure <- fct_relevel(ames_train$Bsmt.Exposure, 
+        c("Gd", "Av", "Mn", "No", "None"))
+ames_train$BsmtFin.Type.1 <- fct_relevel(ames_train$BsmtFin.Type.1, 
+        c("GLQ", "ALQ", "Rec", "BLQ", "LwQ", "Unf", "None"))
+ames_train$BsmtFin.Type.2 <- fct_relevel(ames_train$BsmtFin.Type.2, 
+        c("GLQ", "ALQ", "Rec", "BLQ", "LwQ", "Unf", "None"))
+ames_train$Heating.QC <- fct_relevel(ames_train$Heating.QC, c("Ex", "Gd", "TA", "Fa", "Po"))
+ames_train$Central.Air <- fct_relevel(ames_train$Central.Air, c("Yes", "No"))
+ames_train$Kitchen.Qual <- fct_relevel(ames_train$Kitchen.Qual, 
+        c("Ex", "Gd", "TA", "Fa", "Po"))
+```
+
+### 1.2 EDA - Exploratory Data Analysis
 
 To begin with the Exploratory Data Analysis (EDA), the relationship between price and house location will be analysed. Particularly, the focus will be placed in the neighborhoods. Should the price change given a certain neighborhood?
 
@@ -49,6 +142,7 @@ To begin with the Exploratory Data Analysis (EDA), the relationship between pric
 fig <- ggplot(ames_train, aes(x=Neighborhood, y=price)) + geom_boxplot()
 fig + theme(axis.text.x = element_text(angle=90))
 ```
+
 As it can be denoted in the previous graph, there is a high variability between neighborhoods' prices. Furthermore, the ones more expensive have higher variability based on the interquartile range, which is clearly observed in the boxes height.
 
 Since the median prices for the neighborhoods differ significantly, this variable certainly has predictive value and it'll be consider in the analysis.
@@ -58,6 +152,7 @@ price_plot <- ggplot(ames_train, aes(x=price/1e5)) + geom_histogram(binwidth = .
 log_price_plot <- ggplot(ames_train, aes(x=log(price))) + geom_histogram( binwidth = .05)
 grid.arrange(price_plot, log_price_plot, nrow=2)
 ```
+
 Our target variable presents a right skew. This can cause some issues if we want to predict prices based on a linear regression fit. However, as soon as the variable is transformed using the `log` of the price, the distribution changes to a normal bell shape. This helps to fit (and predict) in a better way the house prices.
 
 ```{r}
@@ -68,7 +163,7 @@ pairs(log(price) ~ log(area)+Year.Built+Full.Bath+Overall.Qual+Garage.Cars,
 
 Finally several variables have been included in a correlation analysis. The selection was not limited to numerical but also categorical features. As it can be seen in the last graphic, there is not much collinearity among them. It's also true that it's almost impossible to remove collinearity between variables; as an example, we can observe some dependency between `Garage.Cars` and the house `area`. This is something expected since, larger houses tend to have more garage capacity, in this case, number of cars that can be stored inside.
 
-All area variables are compounding between each other at a certain level. The best descriptor seems to be the log(area) one, since it has a better fit to a linear regression curve. Nevertheless, this feature has some outliers as it can easily be seen. Later on the model selection, depending on the feature predictive strength those outliers can be taken out from the sample to increase the model accuracy.
+All area variables are compounding between each other at a certain level. The best descriptor seems to be the log(area) one, since it has a better fit to a linear regression curve. The difference between area and log(area) in how it fits to a regression line is appreciable at a glance so the log transformation was made. Nevertheless, this feature has some outliers as it can easily be seen. Later on the model selection, depending on the feature predictive strength those outliers can be taken out from the sample to increase the model accuracy.
 
 ## Part 2 - Development and assessment of an initial model, following a semi-guided process of analysis
 
@@ -79,17 +174,15 @@ Based on your EDA, select *at most* 10 predictor variables from “ames_train”
 
 * * *
 
-NOTE: Write your written response to section 2.1 here. Delete this note before you submit your work.
+The variables chosen for the baseline model are pretty straightforward. Intuitively we can price a house based on how _big_ is it. For so, predictors such as the house `area`, the amount of bathrooms: `Full.Bath` and the amount of cars (`Garage.Cars`) which can be saved inside a house can play as good indicators for this purpose. The year when the house was built (`Year.Built`), together with the property's overall quality `Overall.Qual` help us to determine how the house is aging. Finally, the house location is also of prime importance. The house might have a luxury style but if it's located in a bad neighborhood, its relative price compared with other neighborhoods might fall.
+
 
 ```{r fit_model}
-
 baseline_model <- lm(log(price) ~ log(area)+Year.Built+Full.Bath+Overall.Qual+
                      Garage.Cars+Neighborhood,
                      data=ames_train)
 summary(baseline_model)
-
 ```
-The variables chosen for the baseline model are pretty straightforward. Intuitively we can price a house based on how _big_ is it. For so, predictors such as the house `area`, the amount of bathrooms: `Full.Bath` and the amount of cars (`Garage.Cars`) which can be saved inside a house can play as good indicators for this purpose. The year when the house was built (`Year.Built`), together with the property's overall quality `Overall.Qual` help us to determine how the house is aging. Finally, the house location is also of prime importance. The house might have a luxury style but if it's located in a bad neighborhood, its relative price compared with other neighborhoods might fall.
 
 Looking at the baseline model summary results, a relatively high R-squared value can be observed. Even the adjusted one which considers the fact that several variables are included. Notice that this correction has in mind the propensity to have more collinearity as the amount of predictors are increased. Given the _coefficient of determination_ ($R^2$) the model explains almost 85% of the target variability. Almost all the variables included have high significance looking at their Pr(>|t|) except for Full.Bath which in general terms have a good capacity to explain price variability. Maybe the predictiveness power of this last variable can be increased should some outliers are removed such as those houses without full baths which might represent very particular selling conditions.
 
@@ -101,17 +194,41 @@ Looking at the baseline model summary results, a relatively high R-squared value
 Now either using `BAS` or another stepwise selection procedure choose the "best" model you can, using your initial model as your starting point. Try at least two different model selection methods and compare their results. Do they both arrive at the same model or do they disagree? What do you think this means?
 
 * * *
+To select the best possible model, we will use step-wise elimination. Typically what is used is the backwards elimination process which is stated as follows:
 
-NOTE: Write your written response to section 2.2 here. Delete this note before you submit your work.
+1. Begin with the complete model and choose a metric (R2, adjusted R2, or something else) to evaluate the model. Then compute it for the full/initial model.
+2. Remove one variable at a time from the model and record the resulting metric of the new model.
+3. Pick the model with the best metric improvement (e.g., the highest increase in adjusted R2 or the lowest AIC) - this is the new “base” model.
+4. Repeat steps 2 and 3 until the metric has no more benefit on removing more variables.
+
+For this particular case two methods will be chosen:
+
+The Akaike information criterion (AIC) is a way to estimate the quality of each model relative to each of the other models. If we have k variables and $L$ is the maximum value of the likelihood function of the model, the AIC is given by
+$AIC=2k−2ln(L)$
+
+The “best model is the one with the minimum AIC. From the equation, we see that the AIC rewards goodness of fit (from the likelihood function), but it also penalizes models that have more features.
+
+The Bayesian Information Criterion (BIC) is similar to the AIC; it is given by
+$BIC−kln(n)−2ln(L)$
+
+
+Let's begin with the AIC model and check which variables has been chosen.
 
 ```{r model_select}
 AIC_model <- stepAIC(baseline_model, k = 2)
 ```
+
+Now let's take a look to the BIC fitted model.
+
 ```{r}
 n = nrow(ames_train)
 k_BIC = log(n)
 BIC_model <- stepAIC(baseline_model, k = k_BIC)
 ```
+As can be noticed, the BIC criteria dropped one of the model variales: `Full.Bath`. Generally speaking, AIC is more susceptible to overfitting the data and BIC the opposite. Both of these are true simply because of each metric penalizes free parameters. The AIC is generally better for prediction because it is asymptotically equivalent to cross-validation; BIC is better for explanation since it is asymptotically equivalent to leave-one-out cross-validation (and therefore allows consistent estimation of the underlying data-generating process). 
+
+We will continue with the AIC-selected model, but let's first take a look on a Bayesian approach to select variables to see if we found some differences.
+
 ```{r}
 bma_model <- bas.lm(log(price) ~ log(area)+Year.Built+Full.Bath+Overall.Qual+
                      Garage.Cars+Neighborhood,
@@ -131,10 +248,23 @@ One way to assess the performance of a model is to examine the model's residuals
 
 * * *
 
-NOTE: Write your written response to section 2.3 here. Delete this note before you submit your work.
+Let's plot the residuals for our base line model which includes the whole set of variables that have been identified as informative.
 
 ```{r model_resid}
+ggplot(data = baseline_model, aes(x = .fitted, y = .resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  xlab("Fitted values") +
+  ylab("Residuals")
+
+ggplot(data = baseline_model, aes(x = .resid)) +
+  geom_histogram(binwidth = .05) +
+  xlab("Residuals")
 ```
+
+Looking at the plots it's clear that the residuals are mostly equally distributed along the regression line. This is evident when plotting the residuals histogram. The distribution presents a bell-shaped around 0 for most of the values. The model tends to overestimate the price since the residuals are placed more frequently in the negative side.
+
+There are 2 outliers which needs attention and may have an impact in the regression fit. The first one and most noticeable has a value < -1. This means that this house has been sold at a lower price than the average for similar houses. The second one has a positive residual value, this means that the selling price has been underestimated. Since it's value doesn't fall far away from the other residuals, it can be considered in the modelling. Maybe in the other datasets are points similar to this one and having it included helps to model the others. 
 
 * * *
 
@@ -144,11 +274,32 @@ You can calculate it directly based on the model output. Be specific about the u
 
 * * *
 
-NOTE: Write your written response to section 2.4 here. Delete this note before you submit your work.
-
-
 ```{r model_rmse}
+# Extract Predictions
+baseline_predictions <- exp(predict(baseline_model, ames_train))
+
+# Remove unpredicted values
+na_values <- which(!complete.cases(baseline_predictions))
+ames_train <- ames_train[-c(na_values),]
+baseline_predictions <- baseline_predictions[-c(na_values)]
+
+# Extract Residuals
+baseline_residuals <- ames_train$price - baseline_predictions
+
+# Calculate RMSE
+baseline_rmse <- sqrt(mean(baseline_residuals^2))
+baseline_rmse
 ```
+
+Using the `baseline_model`, the squared root of the averaged squared residuals for estimating the house price is of $31,992.13. The lower this value, the better the model predictive power. Since residuals are squared, the RMSE is quite sensitive for outliers. Probably, this value would fall if the outliers mentioned previously are removed.
+
+Let's take a look to other accuracy measurements to compare the model performance
+
+```{r model_measurements_all}
+# Overall performance of original model
+postResample(pred=baseline_predictions, obs=ames_train$price)
+```
+
 
 * * *
 
@@ -164,14 +315,108 @@ Use your model from above to generate predictions for the housing prices in the 
 
 * * *
 
-NOTE: Write your written response to section 2.5 here. Delete this note before you submit your work.
+As we did with the training data, it's important to clean the testing one before applying the model, otherwise it won't be possible to compare the results and obtain comparable and significant information of the analysis. As this is the same task as was done before the code chunks will be hidden to keep the project report clean.
 
-```{r initmodel_test}
+```{r, echo=FALSE, warning=FALSE}
+#### Replace datatypes
+ames_test$area <- as.numeric(ames_test$area)
+ames_test$price <- as.numeric(ames_test$price)
+ames_test$Lot.Frontage <- as.numeric(ames_test$Lot.Frontage)
+ames_test$Lot.Area <- as.numeric(ames_test$Lot.Area)
+ames_test$Mas.Vnr.Area <- as.numeric(ames_test$Mas.Vnr.Area)
+ames_test$BsmtFin.SF.1 <- as.numeric(ames_test$BsmtFin.SF.1)
+ames_test$BsmtFin.SF.2 <- as.numeric(ames_test$BsmtFin.SF.2)
+ames_test$Total.Bsmt.SF <- as.numeric(ames_test$Total.Bsmt.SF)
+ames_test$MS.SubClass <- as.factor(ames_test$MS.SubClass)
+ames_test$Overall.Qual <- as.factor(ames_test$Overall.Qual)
+ames_test$Overall.Cond <- as.factor(ames_test$Overall.Cond)
+ames_test$X1st.Flr.SF <- as.numeric(ames_test$X1st.Flr.SF)
+ames_test$X2nd.Flr.SF <- as.numeric(ames_test$X2nd.Flr.SF)
+ames_test$Low.Qual.Fin.SF <- as.numeric(ames_test$Low.Qual.Fin.SF)
+ames_test$Garage.Area <- as.numeric(ames_test$Garage.Area)
+ames_test$Wood.Deck.SF <- as.numeric(ames_test$Wood.Deck.SF)
+ames_test$Open.Porch.SF <- as.numeric(ames_test$Open.Porch.SF)
+ames_test$Enclosed.Porch <- as.numeric(ames_test$Enclosed.Porch)
+ames_test$X3Ssn.Porch <- as.numeric(ames_test$X3Ssn.Porch)
+ames_test$Screen.Porch <- as.numeric(ames_test$Screen.Porch)
+ames_test$Pool.Area <- as.numeric(ames_test$Pool.Area)
+ames_test$Misc.Val <- as.numeric(ames_test$Misc.Val)
+ames_test$Garage.Yr.Blt <- as.integer(ames_test$Garage.Yr.Blt)
 ```
 
-* * *
 
-**Note to the learner:** If in real-life practice this out-of-sample analysis shows evidence that the training data fits your model a lot better than the test data, it is probably a good idea to go back and revise the model (usually by simplifying the model) to reduce this overfitting. For simplicity, we do not ask you to do this on the assignment, however.
+```{r, echo=FALSE, warning=FALSE}
+#### Create missing levels for NA values
+ames_test$Alley <- fct_explicit_na(ames_test$Alley, na_level = "None")
+ames_test$Bsmt.Qual <- fct_explicit_na(ames_test$Bsmt.Qual, na_level = "None")
+ames_test$Bsmt.Cond <- fct_explicit_na(ames_test$Bsmt.Cond, na_level = "None")
+ames_test$Bsmt.Exposure <- fct_explicit_na(ames_test$Bsmt.Exposure, na_level = "None")
+ames_test$BsmtFin.Type.1 <- fct_explicit_na(ames_test$BsmtFin.Type.1, na_level = "None")
+ames_test$BsmtFin.Type.2 <- fct_explicit_na(ames_test$BsmtFin.Type.2, na_level = "None")
+ames_test$Fireplace.Qu <- fct_explicit_na(ames_test$Fireplace.Qu, na_level = "None")
+ames_test$Garage.Type <- fct_explicit_na(ames_test$Garage.Type, na_level = "None")
+ames_test$Garage.Finish <- fct_explicit_na(ames_test$Garage.Finish, na_level = "None")
+ames_test$Garage.Type <- fct_explicit_na(ames_test$Garage.Type, na_level = "None")
+ames_test$Garage.Qual <- fct_explicit_na(ames_test$Garage.Cond, na_level = "None")
+ames_test$Garage.Cond <- fct_explicit_na(ames_test$Garage.Qual, na_level = "None")
+ames_test$Pool.QC <- fct_explicit_na(ames_test$Pool.QC, na_level = "None")
+ames_test$Fence <- fct_explicit_na(ames_test$Fence, na_level = "None")
+ames_test$Misc.Feature <- fct_explicit_na(ames_test$Misc.Feature, na_level = "None")
+```
+
+
+```{r echo=FALSE, warning=FALSE}
+#### Organize unsorted categories
+ames_test$Street <- fct_relevel(ames_test$Street, c("Pave", "Grvl"))
+ames_test$Alley <- fct_relevel(ames_test$Alley, c("Pave", "Grvl", "None"))
+ames_test$Lot.Shape <- fct_relevel(ames_test$Lot.Shape, c("Reg", "IR1", "IR2", "IR3"))
+ames_test$Exter.Qual <- fct_relevel(ames_test$Exter.Qual, c("Ex", "Gd", "TA", "Fa", "Po"))
+ames_test$Exter.Cond <- fct_relevel(ames_test$Exter.Cond, c("Ex", "Gd", "TA", "Fa", "Po"))
+ames_test$Bsmt.Qual <- fct_relevel(ames_test$Bsmt.Qual, 
+        c("Ex", "Gd", "TA", "Fa", "Po", "None"))
+ames_test$Bsmt.Cond <- fct_relevel(ames_test$Bsmt.Cond, 
+        c("Ex", "Gd", "TA", "Fa", "Po", "None"))
+ames_test$Functional <- fct_relevel(ames_test$Functional, c("Typ", "Min1", "Min2", "Mod",
+        "Maj1", "Maj2", "Sev", "Sal"))
+ames_test$Fireplace.Qu <- fct_relevel(ames_test$Fireplace.Qu, c("Ex", "Gd", "TA", "Fa", 
+        "Po", "None"))
+ames_test$Garage.Finish <- fct_relevel(ames_test$Garage.Finish, c("Fin", "RFn", "Unf", 
+        "None"))
+ames_test$Garage.Qual <- fct_relevel(ames_test$Garage.Qual, c("Ex", "Gd", "TA", "Fa", 
+        "Po", "None"))
+ames_test$Garage.Cond <- fct_relevel(ames_test$Garage.Cond, c("Ex", "Gd", "TA", "Fa", 
+        "Po", "None"))
+ames_test$Paved.Drive <- fct_relevel(ames_test$Paved.Drive, c("Y", "P", "N"))
+ames_test$Pool.QC <- fct_relevel(ames_test$Pool.QC, c("Ex", "Gd", "TA", "Fa", "None"))
+ames_test$Fence <- fct_relevel(ames_test$Fence, c("GdPrv", "MnPrv", "GdWo", "MnWo", 
+        "None"))
+ames_test$Bsmt.Exposure <- fct_relevel(ames_test$Bsmt.Exposure, 
+        c("Gd", "Av", "Mn", "No", "None"))
+ames_test$BsmtFin.Type.1 <- fct_relevel(ames_test$BsmtFin.Type.1, 
+        c("GLQ", "ALQ", "Rec", "BLQ", "LwQ", "Unf", "None"))
+ames_test$BsmtFin.Type.2 <- fct_relevel(ames_test$BsmtFin.Type.2, 
+        c("GLQ", "ALQ", "Rec", "BLQ", "LwQ", "Unf", "None"))
+ames_test$Heating.QC <- fct_relevel(ames_test$Heating.QC, c("Ex", "Gd", "TA", "Fa", "Po"))
+ames_test$Central.Air <- fct_relevel(ames_test$Central.Air, c("Yes", "No"))
+ames_test$Kitchen.Qual <- fct_relevel(ames_test$Kitchen.Qual, 
+        c("Ex", "Gd", "TA", "Fa", "Po"))
+
+```
+
+```{r initmodel_test}
+# Landmark neighborhood is not present in training data :-(
+ames_test <- subset(ames_test, Neighborhood!='Landmrk')
+
+# Make predictions
+test_predictions <- exp(predict(baseline_model, ames_test))
+
+postResample(pred=test_predictions, obs=ames_test$price)
+```
+
+Before analyzing the results is important to mention that our training data was not representative, since one of the neighborhoods was not present. For so, that single observation has been dropped. In the future, it will be important to add a complete subset of neighborhoods to the training dataset since the predicted price relies on the neighborhood location.
+
+As it can be seen from the RMSE, the prediction errors are better in the test dataset. This is a good indication of predictiveness performance of the baseline model. The next steps will be related on how to build on top of this baseline model.
+* * *
 
 ## Part 3 Development of a Final Model
 
@@ -185,11 +430,50 @@ Provide the summary table for your model.
 
 * * *
 
-NOTE: Write your written response to section 3.1 here. Delete this note before you submit your work.
-
-
 ```{r model_playground}
+
+# Starting from the full variable model and using BIC and linear backward elimination model check if the same model is arrived
+full_model <- lm(log(price) ~ 
+                 log(area)+Year.Built+Full.Bath+Overall.Qual+
+                 Garage.Cars+Neighborhood+MS.Zoning+MS.SubClass+
+                 Street+Land.Slope+Condition.1+Condition.2+
+                 Lot.Config+Exterior.1st+Foundation,
+                 data=ames_train)
+
+final_model_BEP <- step(full_model, direction = "backward", trace = FALSE)
+summary(final_model_BEP)
 ```
+
+Using the BIC elimination process 
+```{r}
+final_model_BMA <- bas.lm(log(price) ~ 
+                     log(area)+Year.Built+Full.Bath+Overall.Qual+
+                     Garage.Cars+Neighborhood+MS.Zoning+MS.SubClass+
+                     Street+Land.Slope+Condition.1+Condition.2+
+                     Lot.Config+Exterior.1st+Foundation,
+                     data=ames_train,
+                     prior = "BIC", 
+                     modelprior = uniform())
+summary(final_model_BMA)
+```
+
+
+The final model is composed by the following variables:
+
+- log(area)
+- Year.Built 
+- Overall.Qual
+- Garage.Cars
+- Neighborhood
+- MS.Zoning
+- MS.SubClass
+- Land.Slope
+- Condition.1
+- Condition.2
+- Lot.Config
+- Foundation
+ 
+The final decision was made based on including the least possible amount of variables, which indeed seems to have the highest posterior probability. Furthermore, adding the less variables as possible, the overfitting issue is minimized.
 
 * * *
 
@@ -199,10 +483,25 @@ Did you decide to transform any variables?  Why or why not? Explain in a few sen
 
 * * *
 
-NOTE: Write your written response to section 3.2 here. Delete this note before you submit your work.
+From the plots done during the EDA phase, it was clear that the logarithm of the area variable fitted better with price. For so, this transformation has been used in the final model. Not any other transformations were included, as they were not needed.
 
-```{r model_assess}
+
+The following graphs plot a regression line of area and log(area) vs log(price) which may help to understand the decision made
+
+```{r message=FALSE, warning=FALSE}
+p1 <- ggplot(ames_train, aes(x=area, y=log(price))) + 
+  geom_point() +
+  geom_smooth(method=lm)
+ 
+p2 <- ggplot(ames_train, aes(x=log(area), y=log(price))) + 
+  geom_point() +
+  geom_smooth(method=lm)
+
+grid.arrange(p1, p2, nrow = 1)
 ```
+
+As it can be seen the variability is lower with the log(area) transformation. This is more evident for large area houses, were the distribution of area vs houses may indicate that after certain area values, the price is not strongly correlated by the latter. 
+
 
 * * *
 
@@ -212,10 +511,7 @@ Did you decide to include any variable interactions? Why or why not? Explain in 
 
 * * *
 
-NOTE: Write your written response to section 3.3 here. Delete this note before you submit your work.
-
-```{r model_inter}
-```
+In general terms, variable interactions were avoided. Any interaction among variables are identified as a sign of _collinearity_ which should be avoided. However, taking a look at the variables chosen by the model selection process, some intuitions can be done around them. For example, the amount of garage cars (`Garage.Cars`) has some degree of _collinearity_ with the house `area`. `Overall.Qual` house condition, might be correlated in some way with the `Year.Built` and the latter with `Year.Remod`.
 
 * * *
 
@@ -224,11 +520,7 @@ NOTE: Write your written response to section 3.3 here. Delete this note before y
 What method did you use to select the variables you included? Why did you select the method you used? Explain in a few sentences.
 
 * * *
-
-NOTE: Write your written response to section 3.4 here. Delete this note before you submit your work.
-
-```{r model_select}
-```
+Using the BIC elimination process we can determine a model with the highest posterior probability and the probability to include each variable. Compared with a frequentist approach, which can be seen in the summary table of Section 3.1, the bayesian approach give us a model with less variables and a higher posterior distribution, which may translate in a lower risk to overfit the model.
 
 * * *
 
@@ -238,10 +530,28 @@ How did testing the model on out-of-sample data affect whether or how you change
 
 * * *
 
-NOTE: Write your written response to section 3.5 here. Delete this note before you submit your work.
+The model has performed considerably well and it has a better RMSE (lower) than the initial model. This statement will be clearer in the paragraph 4.2. As previously expected, including a model with the least variables as possible and selecting the highest posterior probability one, helps reduce the overfitting which may have popped out while estimating the RMSE.
 
-```{r model_testing}
+With this in mind, it's important to say that the data used to train the model doesn't include all categories for some variables. For so, some data has been removed from the test data as is -at least- not representative.
+
+Finally, in order to achieve a better data fit some outliers in the training data have been removed, particularly the one with high negative residual. Which means that the selling price was well under the estimated one (over-estimated).
+
+Let's first create our final model to find the residuals and remove them
+
+```{r}
+final_model <- lm(log(price) ~ log(area)+Year.Built+Overall.Qual+
+                 Garage.Cars+Neighborhood+MS.Zoning+MS.SubClass+
+                 Land.Slope+Condition.1+Condition.2+Lot.Config+Foundation,
+                 data=ames_train)
 ```
+
+Now let's find the residuals and remove them from the training dataset
+
+```{r}
+min_residual <- which(final_model$residuals < -0.75)
+ames_train <- ames_train[-c(min_residual), ]
+```
+
 
 * * *
 
@@ -253,7 +563,34 @@ For your final model, create and briefly interpret an informative plot of the re
 
 * * *
 
-NOTE: Write your written response to section 4.1 here. Delete this note before you submit your work.
+Let's first create the final model based on the identified variables mentioned in the previous paragraphs.
+
+```{r}
+final_model <- lm(log(price) ~ log(area)+Year.Built+Overall.Qual+
+                 Garage.Cars+Neighborhood+MS.Zoning+MS.SubClass+
+                 Land.Slope+Condition.1+Condition.2+Lot.Config+Foundation,
+                 data=ames_train)
+
+summary(final_model)
+```
+
+Now let's plot the residuals
+
+```{r}
+
+ggplot(data = final_model, aes(x = .fitted, y = .resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  xlab("Fitted values") +
+  ylab("Residuals")
+
+ggplot(data = final_model, aes(x = .resid)) +
+  geom_histogram(binwidth = .05) +
+  xlab("Residuals")
+
+```
+
+From the plots above it's clear that the residuals are well balanced around 0. This is a good indication of our final model fit.
 
 * * *
 
@@ -263,7 +600,39 @@ For your final model, calculate and briefly comment on the RMSE.
 
 * * *
 
-NOTE: Write your written response to section 4.2 here. Delete this note before you submit your work.
+As we did before, due that the training dataset does not include the whole set of observables for some variables, the ones which were not trained will have to be removed from the test dataset
+
+```{r model_testing}
+
+ames_test <- subset(ames_test, Neighborhood!='Landmrk')
+ames_test <- subset(ames_test, Condition.2 !='RRAn')
+ames_test <- subset(ames_test, Exterior.2nd != 'AsphShn')
+ames_test <- subset(ames_test, Exterior.2nd != 'Stone')
+ames_test <- subset(ames_test, Foundation != 'Wood')
+
+test_predictions<- predict(final_model, ames_test, estimator="HPM")
+
+# Extract Residuals
+test_residuals <- ames_test$price - test_predictions
+
+# Calculate RMSE
+
+test_rmse <- sqrt(mean(test_residuals^2))
+test_rmse
+```
+
+```{r}
+postResample(pred=test_predictions, obs=ames_test$price)
+```
+
+With this results in mind, a summary table can be provided to compare the performance of the test dataframe with the baseline and the full model.
+
+| dataset | model    | RMSE      | R2        | MAE       |
+|:------  |:-------  |:-----     |:--------- |:--------- |
+| test    | baseline | 28,050.33 | 0.8543819 | 18,816.61 |
+| test    | full     | 19,438.84 | 0.8001079 | 18,018.86 |
+
+Here we can notice that R2 is not a good indicator of fit performance, at a first glance it may indicate the baseline model performs better, however, if we look at the residuals, the full model makes a significant improvement to predict the house price.
 
 * * *
 
@@ -273,7 +642,7 @@ What are some strengths and weaknesses of your model?
 
 * * *
 
-NOTE: Write your written response to section 4.3 here. Delete this note before you submit your work.
+This model does an excellent job of predicting the home prices in Ames, IA. The overall RMSE is well within the closing costs of a typical home, and therefore cannot be driven much lower. Virtually all of the data was used to create this model, and there is no obvious bias. There do not appear to be any significant weaknesses.
 
 * * *
 
@@ -282,21 +651,161 @@ NOTE: Write your written response to section 4.3 here. Delete this note before y
 Testing your final model on a separate, validation data set is a great way to determine how your model will perform in real-life practice. 
 
 You will use the “ames_validation” dataset to do some additional assessment of your final model. Discuss your findings, be sure to mention:
-* What is the RMSE of your final model when applied to the validation data?  
-* How does this value compare to that of the training data and/or testing data?
-* What percentage of the 95% predictive confidence (or credible) intervals contain the true price of the house in the validation data set?  
-* From this result, does your final model properly reflect uncertainty?
 
-```{r loadvalidation, message = FALSE}
-load("ames_validation.Rdata")
-```
+* What is the RMSE of your final model when applied to the validation data?  
+
+* How does this value compare to that of the training data and/or testing data?
+
+* What percentage of the 95% predictive confidence (or credible) intervals contain the true price of the house in the validation data set?  
+
+* From this result, does your final model properly reflect uncertainty?
 
 * * *
 
-NOTE: Write your written response to section 4.4 here. Delete this note before you submit your work.
+Just like we did above, we need to make sure that the validation set has the same variables, variable names, factor levels, etc. as the training and test data sets. Our cleanup follows the same procedure.
 
-```{r model_validate}
+```{r}
+load("ames_validation.Rdata")
 ```
+
+```{r echo=FALSE, warning=FALSE}
+#### Replace datatypes
+ames_validation$area <- as.numeric(ames_validation$area)
+ames_validation$price <- as.numeric(ames_validation$price)
+ames_validation$Lot.Frontage <- as.numeric(ames_validation$Lot.Frontage)
+ames_validation$Lot.Area <- as.numeric(ames_validation$Lot.Area)
+ames_validation$Mas.Vnr.Area <- as.numeric(ames_validation$Mas.Vnr.Area)
+ames_validation$BsmtFin.SF.1 <- as.numeric(ames_validation$BsmtFin.SF.1)
+ames_validation$BsmtFin.SF.2 <- as.numeric(ames_validation$BsmtFin.SF.2)
+ames_validation$Total.Bsmt.SF <- as.numeric(ames_validation$Total.Bsmt.SF)
+ames_validation$MS.SubClass <- as.factor(ames_validation$MS.SubClass)
+ames_validation$Overall.Qual <- as.factor(ames_validation$Overall.Qual)
+ames_validation$Overall.Cond <- as.factor(ames_validation$Overall.Cond)
+ames_validation$X1st.Flr.SF <- as.numeric(ames_validation$X1st.Flr.SF)
+ames_validation$X2nd.Flr.SF <- as.numeric(ames_validation$X2nd.Flr.SF)
+ames_validation$Low.Qual.Fin.SF <- as.numeric(ames_validation$Low.Qual.Fin.SF)
+ames_validation$Garage.Area <- as.numeric(ames_validation$Garage.Area)
+ames_validation$Wood.Deck.SF <- as.numeric(ames_validation$Wood.Deck.SF)
+ames_validation$Open.Porch.SF <- as.numeric(ames_validation$Open.Porch.SF)
+ames_validation$Enclosed.Porch <- as.numeric(ames_validation$Enclosed.Porch)
+ames_validation$X3Ssn.Porch <- as.numeric(ames_validation$X3Ssn.Porch)
+ames_validation$Screen.Porch <- as.numeric(ames_validation$Screen.Porch)
+ames_validation$Pool.Area <- as.numeric(ames_validation$Pool.Area)
+ames_validation$Misc.Val <- as.numeric(ames_validation$Misc.Val)
+ames_validation$Garage.Yr.Blt <- as.integer(ames_validation$Garage.Yr.Blt)
+```
+
+```{r echo=FALSE, warning=FALSE}
+#### Create missing levels for NA values
+ames_validation$Alley <- fct_explicit_na(ames_validation$Alley, na_level = "None")
+ames_validation$Bsmt.Qual <- fct_explicit_na(ames_validation$Bsmt.Qual, na_level = "None")
+ames_validation$Bsmt.Cond <- fct_explicit_na(ames_validation$Bsmt.Cond, na_level = "None")
+ames_validation$Bsmt.Exposure <- fct_explicit_na(ames_validation$Bsmt.Exposure, na_level = "None")
+ames_validation$BsmtFin.Type.1 <- fct_explicit_na(ames_validation$BsmtFin.Type.1, na_level = "None")
+ames_validation$BsmtFin.Type.2 <- fct_explicit_na(ames_validation$BsmtFin.Type.2, na_level = "None")
+ames_validation$Fireplace.Qu <- fct_explicit_na(ames_validation$Fireplace.Qu, na_level = "None")
+ames_validation$Garage.Type <- fct_explicit_na(ames_validation$Garage.Type, na_level = "None")
+ames_validation$Garage.Finish <- fct_explicit_na(ames_validation$Garage.Finish, na_level = "None")
+ames_validation$Garage.Type <- fct_explicit_na(ames_validation$Garage.Type, na_level = "None")
+ames_validation$Garage.Qual <- fct_explicit_na(ames_validation$Garage.Cond, na_level = "None")
+ames_validation$Garage.Cond <- fct_explicit_na(ames_validation$Garage.Qual, na_level = "None")
+ames_validation$Pool.QC <- fct_explicit_na(ames_validation$Pool.QC, na_level = "None")
+ames_validation$Fence <- fct_explicit_na(ames_validation$Fence, na_level = "None")
+ames_validation$Misc.Feature <- fct_explicit_na(ames_validation$Misc.Feature, na_level = "None")
+```
+
+```{r echo=FALSE, warning=FALSE}
+#### Organize unsorted categories
+ames_validation$Street <- fct_relevel(ames_validation$Street, c("Pave", "Grvl"))
+ames_validation$Alley <- fct_relevel(ames_validation$Alley, c("Pave", "Grvl", "None"))
+ames_validation$Lot.Shape <- fct_relevel(ames_validation$Lot.Shape, c("Reg", "IR1", "IR2", "IR3"))
+ames_validation$Exter.Qual <- fct_relevel(ames_validation$Exter.Qual, c("Ex", "Gd", "TA", "Fa", "Po"))
+ames_validation$Exter.Cond <- fct_relevel(ames_validation$Exter.Cond, c("Ex", "Gd", "TA", "Fa", "Po"))
+ames_validation$Bsmt.Qual <- fct_relevel(ames_validation$Bsmt.Qual, 
+        c("Ex", "Gd", "TA", "Fa", "Po", "None"))
+ames_validation$Bsmt.Cond <- fct_relevel(ames_validation$Bsmt.Cond, 
+        c("Ex", "Gd", "TA", "Fa", "Po", "None"))
+ames_validation$Functional <- fct_relevel(ames_validation$Functional, c("Typ", "Min1", "Min2", "Mod",
+        "Maj1", "Maj2", "Sev", "Sal"))
+ames_validation$Fireplace.Qu <- fct_relevel(ames_validation$Fireplace.Qu, c("Ex", "Gd", "TA", "Fa", 
+        "Po", "None"))
+ames_validation$Garage.Finish <- fct_relevel(ames_validation$Garage.Finish, c("Fin", "RFn", "Unf", 
+        "None"))
+ames_validation$Garage.Qual <- fct_relevel(ames_validation$Garage.Qual, c("Ex", "Gd", "TA", "Fa", 
+        "Po", "None"))
+ames_validation$Garage.Cond <- fct_relevel(ames_validation$Garage.Cond, c("Ex", "Gd", "TA", "Fa", 
+        "Po", "None"))
+ames_validation$Paved.Drive <- fct_relevel(ames_validation$Paved.Drive, c("Y", "P", "N"))
+ames_validation$Pool.QC <- fct_relevel(ames_validation$Pool.QC, c("Ex", "Gd", "TA", "Fa", "None"))
+ames_validation$Fence <- fct_relevel(ames_validation$Fence, c("GdPrv", "MnPrv", "GdWo", "MnWo", 
+        "None"))
+ames_validation$Bsmt.Exposure <- fct_relevel(ames_validation$Bsmt.Exposure, 
+        c("Gd", "Av", "Mn", "No", "None"))
+ames_validation$BsmtFin.Type.1 <- fct_relevel(ames_validation$BsmtFin.Type.1, 
+        c("GLQ", "ALQ", "Rec", "BLQ", "LwQ", "Unf", "None"))
+ames_validation$BsmtFin.Type.2 <- fct_relevel(ames_validation$BsmtFin.Type.2, 
+        c("GLQ", "ALQ", "Rec", "BLQ", "LwQ", "Unf", "None"))
+ames_validation$Heating.QC <- fct_relevel(ames_validation$Heating.QC, c("Ex", "Gd", "TA", "Fa", "Po"))
+ames_validation$Central.Air <- fct_relevel(ames_validation$Central.Air, c("Yes", "No"))
+ames_validation$Kitchen.Qual <- fct_relevel(ames_validation$Kitchen.Qual, 
+        c("Ex", "Gd", "TA", "Fa", "Po"))
+
+```
+
+We'll also remove the categories not present in the training dataset
+
+```{r loadvalidation, message = FALSE}
+ames_validation <- subset(ames_validation, MS.SubClass != 150)
+ames_validation <- subset(ames_validation, Exterior.1st != 'CBlock')
+ames_validation <- subset(ames_validation, Exterior.1st != 'PreCast')
+ames_validation <- subset(ames_validation, Condition.2 != 'RRAe')
+ames_validation <- subset(ames_validation, Foundation != 'Wood')
+
+validation_predictions <- predict(final_model, ames_validation, estimator="HPM")
+
+# Extract Residuals
+validation_residuals <- ames_validation$price - validation_predictions
+
+# Calculate RMSE
+test_rmse <- sqrt(mean(validation_residuals^2, na.rm=TRUE) )
+test_rmse
+```
+
+
+```{r}
+postResample(pred=validation_predictions, obs=ames_validation$price)
+```
+
+And just to update our table with the validation dataset results
+
+| dataset | model    | RMSE      | R2        | MAE       |
+|:------  |:-------  |:-----     |:--------- |:--------- |
+| test    | baseline | 28,050.33 | 0.8543819 | 18,816.61 |
+| test    | full     | 19,438.84 | 0.8001079 | 18,018.86 |
+| valid   | full     | 18,495.21 | 0.8150860 | 17,224.65 |
+
+Using the validation dataset, we notice that the tailored model is still valid. The performance metrics indicate that the goodness of fit of the full model which was previously trained can generalize to unobserved data. This is good news, indeed, the performance significantly high.
+
+Now we'll answer the percentage of the 95% predictive confidence interval containing the true price of the house in the validation data set.
+
+```{r}
+valid_preds <- as.data.frame(predict(full_model, newdata = ames_validation, 
+        interval = "predict", level = 0.95))
+
+acc <- sum(log(ames_validation$price) >= valid_preds$lwr & log(ames_validation$price) <= valid_preds$upr)/length(ames_validation$price)
+acc
+```
+
+A total of 97.75% of the `validation` dataset observations fall within the 95% prediction interval model. The devised model includes almost all the observations inside the 95% confidence interval, which indicates a good fit.
+
+Having in mind the results from above we can observe that:
+
+- The RMSE of the original model with the “full” train data set is about $30,000, a reasonable level of error.
+- Having taken out some of the outliers in the training dataset, the RMSE dropped significantly. 
+- When using the final model to predict home prices in the test data set, the RMSE stays low. Indeed, even lower than with the testing dataset, which may have some outliers that introduce _noise_ to the training. 
+- Had the model been overfit or “over-tuned,” we would expect the RMSE to increase, but the model was clearly better than expected.
+- Finally, when we use the model to predict home prices in the validation data set, the RMSE is even lower compared to the testing one. Again, if the model had problems with overfitting, this RMSE would have been higher.
+
 
 * * *
 
@@ -305,7 +814,12 @@ NOTE: Write your written response to section 4.4 here. Delete this note before y
 Provide a brief summary of your results, and a brief discussion of what you have learned about the data and your model. 
 
 * * *
+This is an interesting project which included tons of research and fine-tune, for sure it was really fun to play with. The model performs excellent as a result of an exhaustive work. The project is a good chance to reaffirm the statistics concepts (and R) taught towards the specialization.
 
-NOTE: Write your written response to part 5 here. Delete this note before you submit your work.
+The data used in this project was interesting since it was real (instead of some made-up nonsensical data). I can certainly imagine working on large, complex data sets like this. Having used this kind of dataset makes me feel better prepared for real world challenges.
+
+The model generated was relatively simple and picked with intuition and common sense, however the results were great. Several variables have been chosen, however, all of the other models generated were worse than full model presented. In some way, I feel confident of my intuitions besides the framework provided by R and the libraries to do the hard computational tasks. The diagnostic methods used during the course are pretty useful and new to me. Analyzing residuals through a distribution plot is an interesting and helpful approach. It is also important to say that cleaning the training dataset and removing residuals (outliers) has a significant impact on the predictivness. However this task has to be taken carefully since some of the outliers can appear more frequent in the testing and validations dataset. 
+
+One of the obstacles presented was the fact that not all the representative observations were present in the training dataset. This limits the predictive power and those observations had to be excluded from the samples. Despite this fact, the model was able to predict the house prices with high accuracy, which indicates that it was able to generalize correctly.
 
 * * *
